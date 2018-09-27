@@ -5,22 +5,16 @@ Parameters:
     KeyName:
         Description: "Name of SSH Key"
         Type: String
-Mappings:
-    RegionMap:
-        us-east-2:
-            AMI: ami-065ca29666be8a631
-        us-west-1: 
-            AMI: ami-065ca29666be8a631
+    Ami:
+        Description: "AMI Image ID"
+        Type: String
 Resources:
     LaunchConfig: 
       Type: AWS::AutoScaling::LaunchConfiguration
       Properties: 
         KeyName: 
           Ref: "KeyName"
-        ImageId: !FindInMap
-          - RegionMap
-          - !Ref 'AWS::Region'
-          - AMI
+        ImageId: !Ref Ami
         SecurityGroups: 
           - !GetAtt SSHAccess.GroupId
           - !GetAtt AppAccess.GroupId
@@ -107,6 +101,13 @@ Resources:
             - IpProtocol: tcp
               FromPort: 8000
               ToPort: 8000
+              SourceSecurityGroupName: !Join
+                - " "
+                - - HTTP/S Access - 
+                  - !Ref NameOfService 
+            - IpProtocol: tcp
+              FromPort: 80
+              ToPort: 80
               SourceSecurityGroupName: !Join
                 - " "
                 - - HTTP/S Access - 
