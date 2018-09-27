@@ -1,0 +1,110 @@
+Parameters:
+    NameOfService:
+        Description: "Name of the service"
+        Type: String
+    KeyName:
+        Description: "Name of SSH Key"
+        Type: String
+Mappings:
+    RegionMap:
+        us-east-2:
+            AMI: ami-065ca29666be8a631
+        us-west-1: 
+            AMI: ami-065ca29666be8a631
+Resources:
+    LaunchConfig: 
+      Type: AWS::AutoScaling::LaunchConfiguration
+      Properties: 
+        KeyName: 
+          Ref: "KeyName"
+        ImageId: !FindInMap
+          - RegionMap
+          - !Ref 'AWS::Region'
+          - AMI
+        SecurityGroups: 
+          - !GetAtt SSHAccess.GroupId
+          - !GetAtt AppAccess.GroupId
+        InstanceType: t2.micro
+    WebServerGroup: 
+      Type: AWS::AutoScaling::AutoScalingGroup
+      Properties: 
+        AvailabilityZones: 
+          Fn::GetAZs: ""
+        LaunchConfigurationName: 
+          Ref: LaunchConfig
+        MinSize: "1"
+        MaxSize: "3"
+        LoadBalancerNames: 
+          - !Ref ElasticLoadBalancer
+    ElasticLoadBalancer:
+      Type: AWS::ElasticLoadBalancing::LoadBalancer
+      Properties:
+        SecurityGroups: 
+          - !GetAtt SSHAccess.GroupId
+          - !GetAtt HTTPAccess.GroupId
+        AvailabilityZones:
+          Fn::GetAZs: ''
+        Listeners:
+        - LoadBalancerPort: '80'
+          InstancePort: 80
+          Protocol: tcp
+        HealthCheck:
+          Target:
+            Fn::Join:
+            - ''
+            - - 'TCP:'
+              - 80
+          HealthyThreshold: '3'
+          UnhealthyThreshold: '5'
+          Interval: '30'
+          Timeout: '5'
+    SSHAccess:
+      Type: 'AWS::EC2::SecurityGroup'
+      Properties:
+          GroupName: !Join
+            - " "
+            - - SSH Access - 
+              - !Ref NameOfService 
+          GroupDescription: Enable SSH access via port 22
+          SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: '22'
+              ToPort: '22'
+              CidrIp: 0.0.0.0/0
+    HTTPAccess:
+      Type: 'AWS::EC2::SecurityGroup'
+      Properties:
+          GroupName: !Join
+            - " "
+            - - HTTP/S Access - 
+              - !Ref NameOfService 
+          GroupDescription: Enable HTTP/S Access
+          SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: 80
+              ToPort: 80
+              CidrIp: 0.0.0.0/0 
+            - IpProtocol: tcp
+              FromPort: 443
+              ToPort: 443
+              CidrIp: 0.0.0.0/0 
+            - IpProtocol: tcp
+              FromPort: 8000
+              ToPort: 8000
+              CidrIp: 0.0.0.0/0 
+    AppAccess:
+      Type: 'AWS::EC2::SecurityGroup'
+      Properties:
+          GroupName: !Join
+            - " "
+            - - App Access - 
+              - !Ref NameOfService 
+          GroupDescription: Enable Applications Access
+          SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: 8000
+              ToPort: 8000
+              SourceSecurityGroupName: !Join
+                - " "
+                - - HTTP/S Access - 
+                  - !Ref NameOfService 
