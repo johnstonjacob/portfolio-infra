@@ -48,6 +48,9 @@ Resources:
         - LoadBalancerPort: '80'
           InstancePort: 80
           Protocol: tcp
+        - LoadBalancerPort: '8000'
+          InstancePort: 8000
+          Protocol: tcp
         HealthCheck:
           Target:
             Fn::Join:
