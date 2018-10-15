@@ -19,6 +19,16 @@ Resources:
           - !GetAtt SSHAccess.GroupId
           - !GetAtt AppAccess.GroupId
         InstanceType: t2.micro
+        UserData: 
+            Fn::Base64: !Join [ '',[ 
+                   "#!/bin/bash\n",
+                   "apt update\n",
+                   "apt install apt-transport-https ca-certificates curl software-properties-common -y\n",
+                   "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -\n",
+                   "add-apt-repository 'deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable'\n",
+                   "apt update\n",
+                   "apt-cache policy docker-ce\n", 
+                   "apt-get install -y docker-ce\n"]]
     WebServerGroup: 
       Type: AWS::AutoScaling::AutoScalingGroup
       Properties: 
